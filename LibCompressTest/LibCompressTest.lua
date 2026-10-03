@@ -556,7 +556,7 @@ end
 local function reportWindow()
 	local name = "LibCompressTestReport"
 	local frame = _G[name]
-	if frame then return frame end
+	if frame and frame.box then return frame end
 
 	frame = CreateFrame("Frame", name, UIParent, "UIPanelDialogTemplate")
 	frame:SetSize(760, 520)
@@ -568,7 +568,7 @@ local function reportWindow()
 	frame:SetScript("OnDragStart", frame.StartMoving)
 	frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 
-	local title = frame:NewFontString(nil, "OVERLAY")
+	local title = frame.Title or frame:CreateFontString(nil, "OVERLAY")
 	title:SetFontObject("GameFontNormalLarge")
 	title:SetPoint("TOPLEFT", 20, -14)
 	title:SetText("LibCompress test report")
@@ -589,7 +589,7 @@ local function reportWindow()
 	end)
 	frame.box = box
 
-	local hint = frame:NewFontString(nil, "OVERLAY")
+	local hint = frame:CreateFontString(nil, "OVERLAY")
 	hint:SetFontObject("GameFontHighlightSmall")
 	hint:SetPoint("BOTTOMLEFT", 20, 16)
 	hint:SetText("Ctrl+A, Ctrl+C to copy")
