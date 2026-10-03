@@ -11,3 +11,5 @@ externals:
 ignore:
     - LibCompressTest
     - Tools
+    - Libs/LibStub/tests
+    - Libs/LibStub/LibStub.toc
