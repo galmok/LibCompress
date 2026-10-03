@@ -1356,28 +1356,42 @@ local function legacyCoder(dataFn)
 	end
 end
 
+-- A capability level describes what the *receiving* side has to understand. Levels are
+-- frozen: a level never changes meaning, and a new codec or prefilter gets a new level
+-- rather than quietly joining an old one. That is what keeps a sender from producing
+-- something an older peer can not decode.
+--	1 - store, LZW and Huffman, no prefilter. Every release of this library that has
+--	  ever been made can decode these, so this is what :Compress() produces unless it
+--	  is told otherwise.
+--	2 - adds the deflate family and the sub/rle prefilters (r87 and newer).
+-- This library decodes anything up to COMPRESS_CAPABILITY; producing the higher levels
+-- additionally needs the client to provide the codecs, see HasZlibCodecs.
+local CAPABILITY_SAFE = 1
+local CAPABILITY_CURRENT = 2
+LibCompress.COMPRESS_CAPABILITY = CAPABILITY_CURRENT
+
 -- order is fixed so the result does not depend on hash traversal
-local portableCompressionCodecs = {
+local capabilityOneCodecs = {
 	legacyCoder(compressLZWData),
 	legacyCoder(compressHuffmanData),
 }
 
-local compressionCodecs = portableCompressionCodecs
+local currentCodecs = capabilityOneCodecs
 
 if hasEncodingUtil then
-	compressionCodecs = {
-		portableCompressionCodecs[1],
-		portableCompressionCodecs[2],
+	currentCodecs = {
+		capabilityOneCodecs[1],
+		capabilityOneCodecs[2],
 		makeZlibCoder(COMPMETHOD_DEFLATE, COMPCODEC_DEFLATE, COMPLEVEL_DEFAULT),
 		makeZlibCoder(COMPMETHOD_ZLIB, COMPCODEC_ZLIB, COMPLEVEL_DEFAULT),
 		makeZlibCoder(COMPMETHOD_GZIP, COMPCODEC_GZIP, COMPLEVEL_DEFAULT),
 	}
 end
 
-local function compressionCodecsWithLevel(level)
+local function currentCodecsWithLevel(level)
 	return {
-		portableCompressionCodecs[1],
-		portableCompressionCodecs[2],
+		capabilityOneCodecs[1],
+		capabilityOneCodecs[2],
 		makeZlibCoder(COMPMETHOD_DEFLATE, COMPCODEC_DEFLATE, level),
 		makeZlibCoder(COMPMETHOD_ZLIB, COMPCODEC_ZLIB, level),
 		makeZlibCoder(COMPMETHOD_GZIP, COMPCODEC_GZIP, level),
@@ -1393,37 +1407,63 @@ local decompression_methods = {
 	[6] = LibCompress.DecompressGzip,
 }
 
+local function resolveCapability(capability)
+	if capability == nil then
+		return CAPABILITY_SAFE
+	end
+	if capability == "max" then
+		return CAPABILITY_CURRENT
+	end
+	if type(capability) == "number" and capability >= CAPABILITY_SAFE and capability <= CAPABILITY_CURRENT then
+		return capability
+	end
+	return nil, "Unknown capability ("..tostring(capability)..'), this library knows 1, 2 and "max"'
+end
+
 -- try all compression codecs and return the best result
--- data[, portable[, filter[, level]]]
---	portable	set to true to leave out every codec that needs C_EncodingUtil, so that a
---				Classic era peer is still able to decompress the result
---	filter		"none" (default), "sub", "rle" or "auto". "auto" tries all prefilters and
---				costs about three times as much as the default.
---	level		compression level for the zlib family, see CompressZlib. Needs
---				C_EncodingUtil and is ignored when portable is set.
-function LibCompress:Compress(data, portable, filter, level)
+-- data[, capability[, filter[, level]]]
+--	capability	the highest level the receiving side can decode, which only your own
+--				protocol can know - ask the peer and pass the answer along. Defaults to
+--				1, which every release of this library has ever been able to decode.
+--				"max" means everything this library can do, the right choice when there
+--				is no peer at all, e.g. writing to SavedVariables.
+--	filter		"none" (default), "sub", "rle" or "auto". Needs capability 2. "auto"
+--				tries all prefilters and costs about three times as much as the default.
+--	level		compression level for the zlib family, see CompressZlib. Needs capability
+--				2 and a client that provides C_EncodingUtil.
+function LibCompress:Compress(data, capability, filter, level)
 	if type(data) ~= "string" then
 		return nil, "Can only compress strings"
+	end
+	local capabilityid, capabilityError = resolveCapability(capability)
+	if not capabilityid then
+		return nil, capabilityError
 	end
 	local filterid, filterError = resolveFilter(filter)
 	if not filterid then
 		return nil, filterError
 	end
+	if filterid ~= FILTER_NONE and capabilityid < CAPABILITY_CURRENT then
+		return nil, "The prefilters need capability 2, the peer must have r87 or newer"
+	end
+	if level ~= nil and capabilityid < CAPABILITY_CURRENT then
+		return nil, "A compression level needs capability 2, the peer must have r87 or newer"
+	end
 
 	local codecs
-	if portable then
-		codecs = portableCompressionCodecs
-	elseif level ~= nil then
-		if not hasEncodingUtil then
-			return nil, "A compression level requires C_EncodingUtil, which this client does not provide"
+	if capabilityid < CAPABILITY_CURRENT or not hasEncodingUtil then
+		if level ~= nil then
+			return nil, "A compression level needs capability 2 and C_EncodingUtil, which are not both available here"
 		end
+		codecs = capabilityOneCodecs
+	elseif level ~= nil then
 		local compressionLevel, levelError = resolveLevel(level)
 		if not compressionLevel then
 			return nil, levelError
 		end
-		codecs = compressionCodecsWithLevel(compressionLevel)
+		codecs = currentCodecsWithLevel(compressionLevel)
 	else
-		codecs = compressionCodecs
+		codecs = currentCodecs
 	end
 
 	local result

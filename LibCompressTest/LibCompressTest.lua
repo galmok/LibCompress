@@ -114,26 +114,55 @@ local function testLegacy(payloads)
 		LibCompress:fcs32String("abcdef") == LibCompress:fcs32final(LibCompress:fcs32update(LibCompress:fcs32update(LibCompress:fcs32init(), "abc"), "def")))
 end
 
-local function testCompress(section, payloads, portable)
+local function testCompress(section, payloads, capability)
 	for name, data in pairs(payloads) do
-		roundtrip(section, name, LibCompress:Compress(data, portable), data)
+		roundtrip(section, name, LibCompress:Compress(data, capability), data)
 	end
 end
 
-local function testFilters(section, payloads, portable)
+local function testFilters(section, payloads, capability)
 	-- a subset, this multiplies quickly and :Compress() tries every codec per prefilter
 	local subset = { empty = payloads.empty, one = payloads.one, text = payloads.text, gradient = payloads.gradient, allbytes = payloads.allbytes }
 	for name, data in pairs(subset) do
 		for _, filter in ipairs(FILTERS) do
-			roundtrip(section .. " " .. filter, name, LibCompress:Compress(data, portable, filter), data)
+			roundtrip(section .. " " .. filter, name, LibCompress:Compress(data, capability, filter), data)
 			if filter ~= "auto" and filter ~= "none" then
-				local stream = LibCompress:Compress(data, portable, filter)
+				local stream = LibCompress:Compress(data, capability, filter)
 				local header = type(stream) == "string" and stream:byte(1) or 0
 				local want = (filter == "sub") and 128 or 192
 				check(section .. " " .. filter .. " " .. name .. " header bits", bit_band(header, 192) == want, header)
 			end
 		end
 	end
+end
+
+local function testCapabilities(payloads)
+	local section = "capability"
+	-- the default must stay decodable by every release of this library that has ever
+	-- shipped, so no zlib container and no prefilter bits may ever appear in it
+	for name, data in pairs(payloads) do
+		local stream = LibCompress:Compress(data)
+		roundtrip(section .. " default", name, stream, data)
+		if type(stream) == "string" then
+			local header = stream:byte(1)
+			check(section .. " default " .. name .. " stays inside capability 1",
+				header == 1 or header == 2 or header == 3, header)
+		end
+	end
+	check(section .. " filter above capability rejected",
+		(LibCompress:Compress(payloads.text, 1, "sub")) == nil)
+	check(section .. " level above capability rejected",
+		(LibCompress:Compress(payloads.text, 1, "none", "size")) == nil)
+	check(section .. " unknown capability rejected", (LibCompress:Compress(payloads.text, 99)) == nil)
+	check(section .. " capability 0 rejected", (LibCompress:Compress(payloads.text, 0)) == nil)
+	check(section .. " capability as string rejected", (LibCompress:Compress(payloads.text, "two")) == nil)
+	check(section .. " max accepted", type(LibCompress:Compress(payloads.text, "max")) == "string")
+	check(section .. " capability published", LibCompress.COMPRESS_CAPABILITY == 2,
+		tostring(LibCompress.COMPRESS_CAPABILITY))
+	local filtered = LibCompress:Compress(payloads.gradient, 2, "sub")
+	check(section .. " cap2 filter recorded in header",
+		type(filtered) == "string" and bit_band(filtered:byte(1), 192) == 128,
+		filtered and filtered:byte(1))
 end
 
 local function testStandalone(section, payloads)
@@ -255,7 +284,7 @@ local function testArgumentHandling()
 		{ "unknown filter", LibCompress:CompressZlib("x", nil, "spaghetti") },
 		{ "non string payload", LibCompress:CompressZlib(1234) },
 		{ "Compress non string", LibCompress:Compress(1234) },
-		{ "Compress unknown filter", LibCompress:Compress("x", false, "spaghetti") },
+		{ "Compress unknown filter", LibCompress:Compress("x", 2, "spaghetti") },
 	}
 	for _, case in ipairs(bad) do
 		check(case[1] .. " rejected", case[2] == nil and type(case[3]) == "string", tostring(case[2]) .. " / " .. tostring(case[3]))
@@ -273,8 +302,8 @@ local function testHostileInput(payloads)
 		{ "gzip header, no data", "\006" },
 		{ "rle token past the end", "\251" },
 		{ "rle literal run past the end", "\127AB" },
-		{ "filtered lzw truncated", (LibCompress:Compress(payloads.text, true, "sub")):sub(1, 6) },
-		{ "filtered rle truncated", (LibCompress:Compress(string.rep("\1", 500), true, "rle")):sub(1, 4) },
+		{ "filtered lzw truncated", (LibCompress:Compress(payloads.text, 2, "sub")):sub(1, 6) },
+		{ "filtered rle truncated", (LibCompress:Compress(string.rep("\1", 500), 2, "rle")):sub(1, 4) },
 		{ "unfiltered rle garbage", "\255\1\2\3\254\0\128" },
 		{ "filtered store garbage", "\129\255\255\255\1" },
 	}
@@ -391,8 +420,8 @@ local function sizeReport(payloads)
 		{ "CompressHuffman sub", function() return LibCompress:CompressHuffman(data, "sub") end },
 		{ "CompressZlib", function() return LibCompress:CompressZlib(data) end },
 		{ "CompressZlib sub", function() return LibCompress:CompressZlib(data, nil, "sub") end },
-		{ "Compress auto", function() return LibCompress:Compress(data, false, "auto") end },
-		{ "Compress portable", function() return LibCompress:Compress(data, true) end },
+		{ "Compress cap2 auto", function() return LibCompress:Compress(data, 2, "auto") end },
+		{ "Compress default", function() return LibCompress:Compress(data) end },
 	}) do
 		local iterations = 20
 		local start = debugprofilestop()
@@ -436,10 +465,12 @@ local function run()
 	end
 
 	testLegacy(payloads)
-	testCompress(":Compress", payloads, false)
-	testCompress(":Compress portable", payloads, true)
-	testFilters(":filter", payloads, false)
-	testFilters(":filter portable", payloads, true)
+	testCompress(":Compress default", payloads, nil)
+	testCompress(":Compress cap1", payloads, 1)
+	testCompress(":Compress cap2", payloads, 2)
+	testCompress(":Compress max", payloads, "max")
+	testFilters(":filter cap2", payloads, 2)
+	testCapabilities(payloads)
 	testLegacyCoderFilters("legacy filters", payloads)
 	if LibCompress:HasZlibCodecs() then
 		testStandalone("standalone", payloads)

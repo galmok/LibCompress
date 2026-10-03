@@ -65,20 +65,33 @@ Every coder accepts a filter as an extra argument:
 
 and `:Compress()` takes one too:
 
-`compressed_data = libc:Compress(data, nil, "sub")`
+`compressed_data = libc:Compress(data, 2, "sub")`
 
 Pass `"auto"` instead of a filter name to have the library try none, sub and rle and keep the smallest result:
 
-`compressed_data = libc:Compress(data, false, "auto")`
+`compressed_data = libc:Compress(data, 2, "auto")`
 
-`"auto"` costs about three times as much as a single pass. With a good filter selection this is usually invisible for the few kilobytes that go over an addon channel, but Huffman is the slowest coder in this library, so `"auto"` combined with Huffman is not something to run every frame.
+`"auto"` costs about three times as much as a single pass. With a good filter selection this is usually invisible for the few kilobytes that go over an addon channel, but Huffman is the slowest codec in this library, so `"auto"` combined with Huffman is not something to run every frame.
 
-## Older clients and peers
-`:Compress()` uses the zlib bindings when the client has them. That says nothing about the player receiving your data, so pass `portable` to leave the zlib based algorithms out:
+The prefilters need capability 2, see below: `libc:Compress(data, "sub")` is an error, not a silent fallback, because the second argument is the capability.
 
-`compressed_data = libc:Compress(data, true)`
+## Capability, older clients and peers
+A compressed stream is only useful if the player receiving it can decode it. Your own client having the zlib bindings says nothing about the peer, so `:Compress()` asks you:
 
-A player on a Classic era client can decompress the result of that call, and any client can decompress the result of `CompressLZW`/`CompressHuffman`. Streams are self describing: the codec and the prefilter are recorded in the first byte, so `:Decompress()` never needs to be told what was used. Old streams keep decompressing exactly as before.
+`compressed_data = libc:Compress(data)`
+
+With no capability argument that produces a stream every release of this library has ever been able to decode - store, LZW or Huffman, no prefilter. That is the default and it will never change, so adding a codec in a future release cannot break anyone.
+
+`compressed_data = libc:Compress(data, peerCapability)`
+
+The capability of the peer is something only your own protocol can know, so ask for it in your handshake: `libc.COMPRESS_CAPABILITY` is the highest level this library understands, and you send that number to the other side, which replies with its own. Pass the smaller of the two to `:Compress()`.
+
+- capability 1 - store, LZW, Huffman, no prefilter. Every release of this library can decode it.
+- capability 2 - adds the deflate family and the prefilters (r87 and newer).
+
+`"max"` selects everything this library can do, which is the right choice when there is no peer at all, for example when writing to SavedVariables.
+
+Streams are self describing: the codec and the prefilter are recorded in the first byte, so `:Decompress()` never needs to be told what was used, and this library decodes streams from any older release.
 
 ## Encoding
 LibCompress also has the possibility to encode and decode data, preparing it for transmission over the addon channel or chat channel (or a custom encoding). Two forms of encoding is provided:
