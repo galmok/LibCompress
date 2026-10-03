@@ -13,6 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Lua 5.1 compatibility
+        run: |
+          if grep -rnF --include='*.lua' '\x' LibCompress.lua LibCompressTest Tools; then
+            echo "::error::hex escapes do not exist in Lua 5.1, use decimal escapes"
+            exit 1
+          fi
+
       - name: Luacheck
         uses: nebularg/actions-luacheck@v1
         continue-on-error: true

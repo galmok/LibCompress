@@ -66,7 +66,8 @@ local function buildPayloads()
 		flat = string.rep("\128", 3000),
 		gradient = table.concat(gradient),
 		noise = table.concat(noise),
-		unicode = string.rep("caf\xc3\xa9 \228\246\252 \240\159\148\128 ", 30),
+		-- decimal escapes only, Lua 5.1 has no hex escape sequences
+		unicode = string.rep("caf\195\169 \228\246\252 \240\159\148\128 ", 30),
 	}
 end
 
