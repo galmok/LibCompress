@@ -1,0 +1,9 @@
+## Interface: 120100
+## Title: LibCompress Test (throwaway)
+## Notes: Exercises the LibCompress additions against the real C_EncodingUtil. Not for release.
+## Author: PhotoFinger development
+## Version: dev
+## SavedVariablesPerCharacter: LibCompressTestDump
+## OptionalDependencies: PhotoFinger
+
+LibCompressTest.lua

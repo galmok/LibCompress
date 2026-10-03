@@ -2,5 +2,9 @@ package-as: LibCompress
 
 enable-nolib-creation: no
 
-externals:
-    LibStub: svn://svn.wowace.com/wow/libstub/mainline/trunk/
+# LibStub is committed to the repository (LibStub/LibStub.lua, taken from
+# https://repos.wowace.com/wow/libstub/trunk) because LibCompress.toc loads
+# LibStub\LibStub.lua. It is not fetched at build time any more: svn.wowace.com
+# does not resolve, and the packager would need a git url/tag form for that.
+ignore:
+    - LibCompressTest
