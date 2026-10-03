@@ -1,1 +1,5 @@
 Libs/LibStub/
+
+.release/
+Tools/*.bin
+Tools/old/
