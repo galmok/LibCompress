@@ -20,10 +20,17 @@ jobs:
             exit 1
           fi
 
-      - name: Luacheck
+      - name: Luacheck (library)
         uses: nebularg/actions-luacheck@v1
         continue-on-error: true
         with:
+          files: LibCompress.lua
+          args: "--no-color -q"
+
+      - name: Luacheck (test driver)
+        uses: nebularg/actions-luacheck@v1
+        with:
+          files: LibCompressTest
           args: "--no-color -q"
 
   package:

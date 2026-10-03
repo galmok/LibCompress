@@ -58,7 +58,6 @@ local string_lower = string.lower
 local string_format = string.format
 local unpack = unpack
 local pairs = pairs
-local math_modf = math.modf
 local bit_band = bit.band
 local bit_bor = bit.bor
 local bit_bxor = bit.bxor
@@ -804,7 +803,7 @@ local function compressHuffmanData(self, uncompressed)
 	compressed_size = 5
 
 	-- create symbol/code map
-	local escaped_code, escaped_code_len, success, msg
+	local escaped_code, escaped_code_len
 	for symbol, leaf in pairs(symbols) do
 		addBits(compressed, symbol, 8)
 		escaped_code, escaped_code_len = escape_code(leaf.bcode, leaf.blength)
@@ -896,11 +895,6 @@ local function bor64(valueA_high, valueA, valueB_high, valueB)
 		bit_bor(valueA, valueB)
 end
 
-local function band64(valueA_high, valueA, valueB_high, valueB)
-	return bit_band(valueA_high, valueB_high),
-		bit_band(valueA, valueB)
-end
-
 local function lshift64(value_high, value, lshift_amount)
 	if lshift_amount == 0 then
 		return value_high, value
@@ -940,7 +934,7 @@ local function getCode2(bitfield_high, bitfield, field_len)
 		for i = 0, field_len - 2 do
 			b1 = i <= 31 and bit_band(bitfield, bit_lshift(1, i)) or bit_band(bitfield_high, bit_lshift(1, i)) -- for shifts, 32 = 0 (5 bit used)
 			b2 = (i+1) <= 31 and bit_band(bitfield, bit_lshift(1, i+1)) or bit_band(bitfield_high, bit_lshift(1, i+1))
-			if not (b1 == 0) and not (b2 == 0) then
+			if b1 ~= 0 and b2 ~= 0 then
 				-- found 2 bits set right after each other (stop bits) with i pointing at the first stop bit
 				-- return the two bitfields separated by the two stopbits (3 values for each: bitfield_high, bitfield, field_len)
 				-- bits left: field_len - (i+2)
@@ -965,7 +959,7 @@ local function unescape_code(code, code_len)
 	local i = 0
 	while i < code_len do
 		b = bit_band( code, lshiftMask[i])
-		if not (b == 0) then
+		if b ~= 0 then
 			unescaped_code = bit_bor(unescaped_code, lshiftMask[l])
 			i = i + 1
 		end
@@ -979,7 +973,7 @@ tables.Huffman_uncompressed = {}
 tables.Huffman_large_uncompressed = {} -- will always be as big as the largest string ever decompressed. Bad, but clearing it every time takes precious time.
 
 local function decompressHuffmanData(self, compressed)
-	if not type(compressed) == "string" then
+	if type(compressed) ~= "string" then
 		return nil, "Can only uncompress strings"
 	end
 
@@ -990,7 +984,7 @@ local function decompressHuffmanData(self, compressed)
 	if info_byte == 1 then
 		return compressed:sub(2) --return uncompressed data
 	end
-	if not (info_byte == 3) then
+	if info_byte ~= 3 then
 		return nil, "Can only decompress Huffman compressed data ("..tostring(info_byte)..")"
 	end
 

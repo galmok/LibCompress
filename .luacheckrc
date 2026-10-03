@@ -18,4 +18,11 @@ globals = {
 	"C_ChatInfo",
 	"C_AddOns",
 	"bit",
+	"sort",
+	"debugprofilestop",
+}
+
+-- development helpers, they deliberately fake the WoW environment
+exclude_files = {
+	"Tools",
 }

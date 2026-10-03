@@ -280,7 +280,6 @@ local function testContainersAreNotInterchangeable(section)
 end
 
 local function testArgumentHandling()
-	local section = "arguments"
 	local bad = {
 		{ "level out of range", LibCompress:CompressZlib("x", 9) },
 		{ "unknown level name", LibCompress:CompressZlib("x", "bananas") },
@@ -299,7 +298,6 @@ local function testArgumentHandling()
 end
 
 local function testHostileInput(payloads)
-	local section = "hostile input"
 	local cases = {
 		{ "deflate with a filtered header and garbage", "\132abcdef" },
 		{ "gzip header, no data", "\006" },
@@ -340,7 +338,6 @@ local function testHostileInput(payloads)
 end
 
 local function testEncodeTables(payloads)
-	local section = "encode tables"
 	local addon = LibCompress:GetAddonEncodeTable()
 	check("addon encode roundtrip", addon:Decode(addon:Encode(payloads.allbytes)) == payloads.allbytes)
 	check("addon encode has no NUL", not addon:Encode(payloads.allbytes):find("\000", 1, true))
