@@ -46,5 +46,11 @@ end
 
 SlashCmdList = {}
 function LoadAddOn() return nil end
-C_AddOns = { LoadAddOn = LoadAddOn, GetAddOnInfo = function() return nil end }
+C_AddOns = {
+	LoadAddOn = LoadAddOn,
+	DoesAddOnExist = function() return true end,
+	IsAddOnLoaded = function() return true end,
+	GetAddOnInfo = function() return "Lib: Compress", nil, true end,
+}
+function GetLastError() return "" end
 function CopyToClipboard() end

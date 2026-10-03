@@ -441,18 +441,38 @@ local function addonAPI(name)
 	return ns and ns[name] or _G[name]
 end
 
-local function loadFailureHint(name)
-	local getAddOnInfo = addonAPI("GetAddOnInfo")
-	if not getAddOnInfo then return nil end
+local function diagnoseMissingLibrary(name)
+	local lines = {}
 
-	local _, _, loadable, reason = getAddOnInfo(name)
-	if loadable == nil then
-		return ("there is no %s folder in your AddOns directory"):format(name)
+	local doesAddOnExist = addonAPI("DoesAddOnExist")
+	if doesAddOnExist then
+		lines[#lines + 1] = ("  add-on folder present: %s"):format(tostring(doesAddOnExist(name)))
 	end
-	if not loadable then
-		return ("%s is not loadable (%s) - enable it in the AddOns list"):format(name, tostring(reason))
+
+	local isAddOnLoaded = addonAPI("IsAddOnLoaded")
+	if isAddOnLoaded then
+		lines[#lines + 1] = ("  add-on loaded: %s"):format(tostring(isAddOnLoaded(name)))
 	end
-	return nil
+
+	local getAddOnInfo = addonAPI("GetAddOnInfo")
+	if getAddOnInfo then
+		local title, _, loadable, reason, err = getAddOnInfo(name)
+		if title == nil then
+			lines[#lines + 1] = ("  no add-on named %s in your AddOns directory"):format(name)
+		else
+			lines[#lines + 1] = ("  loadable: %s  reason: %s  error: %s"):format(
+				tostring(loadable), tostring(reason), tostring(err))
+		end
+	end
+
+	if GetLastError then
+		local last = GetLastError()
+		if last and last ~= "" then
+			lines[#lines + 1] = ("  last error: %s"):format(last)
+		end
+	end
+
+	return lines
 end
 
 local function run()
@@ -471,9 +491,10 @@ local function run()
 	end
 	LibCompress = LibStub:GetLibrary("LibCompress", true)
 	if not LibCompress then
-		local hint = loadFailureHint("LibCompress")
-		print(("LibCompressTest: LibCompress is not loaded%s - enable the add-on, or add the LibCompress folder to your AddOns")
-			:format(hint and (" (" .. hint .. ")") or ""))
+		print("LibCompressTest: LibCompress is not loaded - enable the add-on, or add the LibCompress folder to your AddOns")
+		for _, line in ipairs(diagnoseMissingLibrary("LibCompress")) do
+			print(line)
+		end
 		return
 	end
 

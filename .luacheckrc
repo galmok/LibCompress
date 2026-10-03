@@ -7,6 +7,7 @@ globals = {
 	"CreateFrame",
 	"GetBuildInfo",
 	"GetTime",
+	"GetLastError",
 	"LoadAddOn",
 	"IsAddOnLoaded",
 	"CopyToClipboard",
