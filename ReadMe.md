@@ -146,3 +146,5 @@ The 32 bit value is the CRC-32 of RFC 1331, the same value as `zlib.crc32` retur
 Primary author: Galmok of European Stormrage (Horde), galmok@gmail.com.
 
 Former author: JJSheets (sheets.jeff@gmail.com), who implemented the LZW codec. He is not active with this library.
+
+LibStub is used as the library loader and is pulled in from https://repos.curseforge.com/wow/libstub/trunk when the package is built. It is public domain, written by Kaelten, Cladhaire, ckknight, Mikk, Ammo, Nevcairiel and joshborke.
