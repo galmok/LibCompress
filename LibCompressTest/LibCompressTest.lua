@@ -9,6 +9,8 @@ file; point an AddOns folder at this directory to run it against the library nex
 
 local EXPECTED_MINOR = 90087
 
+local bit_band = bit.band
+
 local LibCompressTest = {}
 local LibCompress
 local passed, failed, report
@@ -517,27 +519,33 @@ local function run()
 		log("C_EncodingUtil is missing, only the pure Lua paths are being tested")
 	end
 
-	testLegacy(payloads)
-	testCompress(":Compress default", payloads, nil)
-	testCompress(":Compress cap1", payloads, 1)
-	testCompress(":Compress cap2", payloads, 2)
-	testCompress(":Compress max", payloads, "max")
-	testFilters(":filter cap2", payloads, 2)
-	testCapabilities(payloads)
-	testLegacyCoderFilters("legacy filters", payloads)
-	if LibCompress:HasZlibCodecs() then
-		testStandalone("standalone", payloads)
-		testStandaloneFiltersAndLevels("standalone opts", payloads)
-		testContainersAreNotInterchangeable("containers")
-	end
-	testArgumentHandling()
-	testHostileInput(payloads)
-	testEncodeTables(payloads)
-	testChecksums(payloads)
-	sizeReport(payloads)
+	-- a crash must not swallow the results collected so far
+	local ok, err = pcall(function()
+		testLegacy(payloads)
+		testCompress(":Compress default", payloads, nil)
+		testCompress(":Compress cap1", payloads, 1)
+		testCompress(":Compress cap2", payloads, 2)
+		testCompress(":Compress max", payloads, "max")
+		testFilters(":filter cap2", payloads, 2)
+		testCapabilities(payloads)
+		testLegacyCoderFilters("legacy filters", payloads)
+		if LibCompress:HasZlibCodecs() then
+			testStandalone("standalone", payloads)
+			testStandaloneFiltersAndLevels("standalone opts", payloads)
+			testContainersAreNotInterchangeable("containers")
+		end
+		testArgumentHandling()
+		testHostileInput(payloads)
+		testEncodeTables(payloads)
+		testChecksums(payloads)
+		sizeReport(payloads)
+	end)
 
 	log("| ------------------------------------------------------------")
 	log(("%d passed, %d failed"):format(passed, failed))
+	if not ok then
+		log(("CRASHED: %s"):format(tostring(err)))
+	end
 	LibCompressTest.lastReport = table.concat(report, "\n")
 end
 

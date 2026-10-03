@@ -19,10 +19,4 @@ globals = {
 	"C_ChatInfo",
 	"C_AddOns",
 	"bit",
-	"bit_band",
-	"bit_bor",
-	"bit_bxor",
-	"bit_bnot",
-	"bit_lshift",
-	"bit_rshift",
 }

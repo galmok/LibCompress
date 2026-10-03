@@ -21,8 +21,6 @@ do
 		lshift = function(a, n) return (a << n) & MASK end,
 		rshift = function(a, n) return (a & MASK) >> n end,
 	}
-	bit_band, bit_bor, bit_bxor = bit.band, bit.bor, bit.bxor
-	bit_bnot, bit_lshift, bit_rshift = bit.bnot, bit.lshift, bit.rshift
 end
 
 local function noop() end
