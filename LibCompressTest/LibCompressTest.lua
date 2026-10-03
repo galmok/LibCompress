@@ -491,7 +491,7 @@ local function run()
 	end
 	LibCompress = LibStub:GetLibrary("LibCompress", true)
 	if not LibCompress then
-		print("LibCompressTest: LibCompress is not loaded - enable the add-on, or add the LibCompress folder to your AddOns")
+		print("LibCompressTest: LibCompress is not loaded, even though this add-on depends on it")
 		for _, line in ipairs(diagnoseMissingLibrary("LibCompress")) do
 			print(line)
 		end

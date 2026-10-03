@@ -4,6 +4,7 @@
 ## Author: PhotoFinger development
 ## Version: dev
 ## SavedVariablesPerCharacter: LibCompressTestDump
+## Dependencies: LibCompress
 ## OptionalDependencies: PhotoFinger
 
 LibCompressTest.lua
