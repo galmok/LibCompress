@@ -1232,8 +1232,8 @@ local function makeZlibCoder(blizzardMethod, codec, compressionLevel)
 			-- consistently, so an empty payload is simply a bare header byte
 			return header
 		end
-		local compressed = C_EncodingUtil.CompressString(payload, blizzardMethod, compressionLevel)
-		if not compressed then
+		local ok, compressed = pcall(C_EncodingUtil.CompressString, payload, blizzardMethod, compressionLevel)
+		if not ok or not compressed then
 			return nil, name.." compression failed"
 		end
 		return header..compressed
@@ -1278,8 +1278,10 @@ local function decompressWithZlib(data, blizzardMethod, codec)
 		return applyUnfilter(filter, "")
 	end
 
-	local decompressed = C_EncodingUtil.DecompressString(string_sub(data, 2), blizzardMethod)
-	if not decompressed then
+	-- Blizzard's binding raises an error on corrupt or truncated input rather than
+	-- returning nil, which would turn a malformed chat message into a script error
+	local ok, decompressed = pcall(C_EncodingUtil.DecompressString, string_sub(data, 2), blizzardMethod)
+	if not ok or not decompressed then
 		return nil, codecNames[codec].." decompression failed"
 	end
 	return applyUnfilter(filter, decompressed)

@@ -348,7 +348,9 @@ local function testEncodeTables(payloads)
 	local encoded = logged:Encode(payloads.allbytes)
 	check("logged encode roundtrip", logged:Decode(encoded) == payloads.allbytes,
 		("%d -> %d -> %d"):format(#payloads.allbytes, #encoded, #logged:Decode(encoded)))
-	check("logged output is printable ascii only", encoded:match("^[^\000-\031\127-\255]*$") ~= nil,
+	-- Lua 5.1 truncates a pattern at an embedded NUL, so the NUL is checked separately
+	local controlByte = encoded:find("\000", 1, true) or encoded:find("[\1-\31\127-\255]")
+	check("logged output is printable ascii only", controlByte == nil,
 		encoded:gsub("%c", "?"):sub(1, 40))
 	check("logged output has no chat escape", not encoded:find("|", 1, true))
 	for i = 1, 4 do
@@ -592,12 +594,6 @@ local function reportWindow()
 	box:SetSize(frame:GetWidth() - 40, frame:GetHeight() - 90)
 	box:SetPoint("TOPLEFT", 20, -44)
 	box:SetScript("OnEscapePressed", function() frame:Hide() end)
-	box:SetScript("OnMouseWheel", function(self, delta)
-		local range = self:GetVerticalScrollRange()
-		if range > 0 then
-			self:SetVerticalScroll(math.min(math.max(self:GetVerticalScroll() - delta * 20, 0), range))
-		end
-	end)
 	frame.box = box
 
 	local hint = frame:CreateFontString(nil, "OVERLAY")

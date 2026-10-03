@@ -10,6 +10,26 @@ strtrim = string.trim or function(s) return (s:gsub("^%s+", ""):gsub("%s+$", "")
 wipe = function(t) for k in pairs(t) do t[k] = nil end end
 UIParent = {}
 
+-- Lua 5.1 reads patterns as C strings and truncates them at an embedded NUL, while
+-- modern Lua does not. Emulate the old behaviour so pattern bugs fail here too.
+do
+	local function truncate(pattern, plain)
+		if type(pattern) == "string" and not plain then
+			local cut = pattern:find("\000", 1, true)
+			if cut then
+				return pattern:sub(1, cut - 1)
+			end
+		end
+		return pattern
+	end
+
+	local find, match, gmatch, gsub = string.find, string.match, string.gmatch, string.gsub
+	string.find = function(s, pattern, init, plain) return find(s, truncate(pattern, plain), init, plain) end
+	string.match = function(s, pattern) return match(s, truncate(pattern)) end
+	string.gmatch = function(s, pattern) return gmatch(s, truncate(pattern)) end
+	string.gsub = function(s, pattern, repl, count) return gsub(s, truncate(pattern), repl, count) end
+end
+
 -- WoW's 32 bit bit library
 do
 	local MASK = 0xFFFFFFFF
@@ -40,7 +60,6 @@ local widgetMethods = {
 	SetText = true, GetText = true, SetFontObject = true, GetFontObject = true,
 	SetMultiLine = true, SetAutoFocus = true, SetMaxLetters = true, SetFocus = true,
 	HasFocus = true, HighlightText = true,
-	SetVerticalScroll = true, GetVerticalScroll = true, GetVerticalScrollRange = true,
 }
 
 local function newWidget()
@@ -73,10 +92,6 @@ local function newWidget()
 					state.text = ...
 				elseif key == "GetText" then
 					return state.text
-				elseif key == "GetVerticalScrollRange" then
-					return 0
-				elseif key == "GetVerticalScroll" then
-					return 0
 				elseif key == "CreateFontString" or key == "CreateTexture" or key == "CreateMaskTexture" then
 					return newWidget()
 				end
