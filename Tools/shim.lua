@@ -25,15 +25,69 @@ end
 
 local function noop() end
 
+-- Only methods a plain retail frame actually has. Anything else has to fail here
+-- instead of on the live client, so the widget stubs stay close to the real API.
+local widgetMethods = {
+	RegisterEvent = true, UnregisterEvent = true, RegisterAllEvents = true,
+	RegisterForDrag = true, RegisterForClicks = true,
+	SetScript = true, Show = true, Hide = true, IsShown = true,
+	SetPoint = true, ClearAllPoints = true, SetSize = true, SetWidth = true, SetHeight = true,
+	GetWidth = true, GetHeight = true, SetParent = true, GetParent = true,
+	SetFrameStrata = true, SetFrameLevel = true, SetToplevel = true, SetMovable = true,
+	EnableMouse = true, EnableMouseWheel = true, EnableKeyboard = true, SetAlpha = true,
+	StartMoving = true, StopMovingOrSizing = true, SetPropagate = true,
+	CreateFontString = true, CreateTexture = true, CreateMaskTexture = true,
+	SetText = true, GetText = true, SetFontObject = true, GetFontObject = true,
+	SetMultiLine = true, SetAutoFocus = true, SetMaxLetters = true, SetFocus = true,
+	HasFocus = true, HighlightText = true,
+	SetVerticalScroll = true, GetVerticalScroll = true, GetVerticalScrollRange = true,
+}
+
+local function newWidget()
+	local state = { width = 0, height = 0, shown = false }
+	local widget
+	widget = setmetatable({}, {
+		__index = function(self, key)
+			if not widgetMethods[key] then return nil end
+			if key == "SetScript" then
+				return function(_, script, handler) rawset(self, script, handler) end
+			end
+			return function(_, ...)
+				if key == "SetSize" then
+					state.width, state.height = ...
+				elseif key == "SetWidth" then
+					state.width = ...
+				elseif key == "SetHeight" then
+					state.height = ...
+				elseif key == "GetWidth" then
+					return state.width
+				elseif key == "GetHeight" then
+					return state.height
+				elseif key == "Show" then
+					state.shown = true
+				elseif key == "Hide" then
+					state.shown = false
+				elseif key == "IsShown" then
+					return state.shown
+				elseif key == "SetText" then
+					state.text = ...
+				elseif key == "GetText" then
+					return state.text
+				elseif key == "GetVerticalScrollRange" then
+					return 0
+				elseif key == "GetVerticalScroll" then
+					return 0
+				elseif key == "CreateFontString" or key == "CreateTexture" or key == "CreateMaskTexture" then
+					return newWidget()
+				end
+			end
+		end,
+	})
+	return widget
+end
+
 function CreateFrame(frameType, name, parent, template)
-	local frame = {}
-	frame.RegisterEvent = noop
-	frame.UnregisterEvent = noop
-	frame.SetScript = function(self, script, handler) frame[script] = handler end
-	frame.Show, frame.Hide = noop, noop
-	frame.IsShown = function() return false end
-	frame.SetPropagate = noop
-	return frame
+	return newWidget()
 end
 
 function GetBuildInfo() return "12.1.0", 120100, "Release", "2026-10-03", 43000 end

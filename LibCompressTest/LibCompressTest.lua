@@ -553,10 +553,21 @@ end
 -- report window; CopyToClipboard is a protected function, so the text has to be
 -- copied by hand out of an edit box
 
+-- font objects are not guaranteed to be globals, so only set one that exists
+local function applyFontObject(widget, ...)
+	for i = 1, select("#", ...) do
+		local font = _G[select(i, ...)]
+		if font then
+			widget:SetFontObject(font)
+			return
+		end
+	end
+end
+
 local function reportWindow()
 	local name = "LibCompressTestReport"
 	local frame = _G[name]
-	if frame and frame.box then return frame end
+	if frame and frame.box and frame.close then return frame end
 
 	frame = CreateFrame("Frame", name, UIParent, "UIPanelDialogTemplate")
 	frame:SetSize(760, 520)
@@ -569,7 +580,7 @@ local function reportWindow()
 	frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 
 	local title = frame.Title or frame:CreateFontString(nil, "OVERLAY")
-	title:SetFontObject("GameFontNormalLarge")
+	applyFontObject(title, "GameFontNormalLarge", "GameFontNormal")
 	title:SetPoint("TOPLEFT", 20, -14)
 	title:SetText("LibCompress test report")
 
@@ -577,7 +588,7 @@ local function reportWindow()
 	box:SetMultiLine(true)
 	box:SetAutoFocus(false)
 	box:SetMaxLetters(0)
-	box:SetFontObject("GameFontMono")
+	applyFontObject(box, "GameFontMono", "GameFontHighlight", "GameFontNormal")
 	box:SetSize(frame:GetWidth() - 40, frame:GetHeight() - 90)
 	box:SetPoint("TOPLEFT", 20, -44)
 	box:SetScript("OnEscapePressed", function() frame:Hide() end)
@@ -590,7 +601,7 @@ local function reportWindow()
 	frame.box = box
 
 	local hint = frame:CreateFontString(nil, "OVERLAY")
-	hint:SetFontObject("GameFontHighlightSmall")
+	applyFontObject(hint, "GameFontHighlightSmall", "GameFontHighlight")
 	hint:SetPoint("BOTTOMLEFT", 20, 16)
 	hint:SetText("Ctrl+A, Ctrl+C to copy")
 
@@ -599,6 +610,7 @@ local function reportWindow()
 	close:SetPoint("BOTTOM", 0, 12)
 	close:SetText("Close")
 	close:SetScript("OnClick", function() frame:Hide() end)
+	frame.close = close
 
 	return frame
 end

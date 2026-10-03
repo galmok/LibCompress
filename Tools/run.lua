@@ -18,3 +18,5 @@ assert(LibStub and LibStub:GetLibrary("LibCompress", true), "library did not reg
 
 dofile(driverPath)
 SlashCmdList.LIBCOMPRESSTEST("")
+SlashCmdList.LIBCOMPRESSTEST("copy")
+print("report window built")
