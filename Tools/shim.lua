@@ -51,4 +51,3 @@ C_AddOns = {
 	GetAddOnInfo = function() return "Lib: Compress", nil, true end,
 }
 function GetLastError() return "" end
-function CopyToClipboard() end

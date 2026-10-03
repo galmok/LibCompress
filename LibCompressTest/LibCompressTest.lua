@@ -4,7 +4,7 @@ encode table). It lives in the LibCompress repository and is left out of the pac
 file; point an AddOns folder at this directory to run it against the library next to it.
 
 	/lctest			run everything, print the summary
-	/lctest copy	copy the last report to the clipboard
+	/lctest copy	open the last report in a window, Ctrl+A and Ctrl+C to copy
 ]]--
 
 local EXPECTED_MINOR = 90087
@@ -549,13 +549,77 @@ local function run()
 	LibCompressTest.lastReport = table.concat(report, "\n")
 end
 
+--------------------------------------------------------------------------------
+-- report window; CopyToClipboard is a protected function, so the text has to be
+-- copied by hand out of an edit box
+
+local function reportWindow()
+	local name = "LibCompressTestReport"
+	local frame = _G[name]
+	if frame then return frame end
+
+	frame = CreateFrame("Frame", name, UIParent, "UIPanelDialogTemplate")
+	frame:SetSize(760, 520)
+	frame:SetPoint("CENTER")
+	frame:SetToplevel(true)
+	frame:SetMovable(true)
+	frame:EnableMouse(true)
+	frame:RegisterForDrag("LeftButton")
+	frame:SetScript("OnDragStart", frame.StartMoving)
+	frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+
+	local title = frame:NewFontString(nil, "OVERLAY")
+	title:SetFontObject("GameFontNormalLarge")
+	title:SetPoint("TOPLEFT", 20, -14)
+	title:SetText("LibCompress test report")
+
+	local box = CreateFrame("EditBox", name .. "Text", frame, "InputBoxTemplate")
+	box:SetMultiLine(true)
+	box:SetAutoFocus(false)
+	box:SetMaxLetters(0)
+	box:SetFontObject("GameFontMono")
+	box:SetSize(frame:GetWidth() - 40, frame:GetHeight() - 90)
+	box:SetPoint("TOPLEFT", 20, -44)
+	box:SetScript("OnEscapePressed", function() frame:Hide() end)
+	box:SetScript("OnMouseWheel", function(self, delta)
+		local range = self:GetVerticalScrollRange()
+		if range > 0 then
+			self:SetVerticalScroll(math.min(math.max(self:GetVerticalScroll() - delta * 20, 0), range))
+		end
+	end)
+	frame.box = box
+
+	local hint = frame:NewFontString(nil, "OVERLAY")
+	hint:SetFontObject("GameFontHighlightSmall")
+	hint:SetPoint("BOTTOMLEFT", 20, 16)
+	hint:SetText("Ctrl+A, Ctrl+C to copy")
+
+	local close = CreateFrame("Button", name .. "Close", frame, "UIPanelButtonTemplate")
+	close:SetSize(90, 24)
+	close:SetPoint("BOTTOM", 0, 12)
+	close:SetText("Close")
+	close:SetScript("OnClick", function() frame:Hide() end)
+
+	return frame
+end
+
+local function showReport()
+	if not LibCompressTest.lastReport then
+		print("LibCompressTest: no report yet - run /lctest first")
+		return
+	end
+	local frame = reportWindow()
+	frame.box:SetText(LibCompressTest.lastReport)
+	frame.box:HighlightText()
+	frame.box:SetFocus()
+	frame:Show()
+end
+
 SLASH_LIBCOMPRESSTEST1 = "/lctest"
 SlashCmdList.LIBCOMPRESSTEST = function(msg)
-	if (msg or ""):match("^%s*copy") then
-		if LibCompressTest.lastReport then
-			CopyToClipboard(LibCompressTest.lastReport, true)
-			print("LibCompressTest: report copied to the clipboard")
-		end
+	local arg = (msg or ""):match("^%s*(%a*)")
+	if arg == "copy" or arg == "show" then
+		showReport()
 		return
 	end
 	run()

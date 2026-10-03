@@ -10,7 +10,6 @@ globals = {
 	"GetLastError",
 	"LoadAddOn",
 	"IsAddOnLoaded",
-	"CopyToClipboard",
 	"SlashCmdList",
 	"SLASH_LIBCOMPRESSTEST1",
 	"UIParent",
