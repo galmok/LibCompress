@@ -1,12 +1,9 @@
 --[[
-Runs the LibCompressTest driver under plain Lua. There is no C_EncodingUtil here, so
+Runs the repository test driver under plain Lua. There is no C_EncodingUtil here, so
 only the pure Lua codecs are exercised; the in game /lctest run covers the zlib family.
 
 	LIBSTUB=../Libs/LibStub/LibStub.lua LIBCOMPRESS=../LibCompress.lua 		DRIVER=../LibCompressTest/LibCompressTest.lua lua run.lua
 ]]
-
--- Runs the repository test driver under plain Lua. No C_EncodingUtil, so only the
--- pure Lua codecs are exercised; the in-game /lctest run covers the zlib family.
 
 local libPath = assert(os.getenv("LIBCOMPRESS"), "set LIBCOMPRESS to LibCompress.lua")
 local driverPath = assert(os.getenv("DRIVER"), "set DRIVER to LibCompressTest.lua")

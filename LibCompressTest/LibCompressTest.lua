@@ -435,13 +435,45 @@ end
 --------------------------------------------------------------------------------
 -- runner
 
-local function run()
-	if LibStub and not LibStub:GetLibrary("LibCompress", true) then
-		LoadAddOn("LibCompress")
+-- 11.x moved the addon API into C_AddOns and dropped the old globals
+local function addonAPI(name)
+	local ns = C_AddOns
+	return ns and ns[name] or _G[name]
+end
+
+local function loadFailureHint(name)
+	local getAddOnInfo = addonAPI("GetAddOnInfo")
+	if not getAddOnInfo then return nil end
+
+	local _, _, loadable, reason = getAddOnInfo(name)
+	if loadable == nil then
+		return ("there is no %s folder in your AddOns directory"):format(name)
 	end
-	LibCompress = LibStub and LibStub:GetLibrary("LibCompress", true)
+	if not loadable then
+		return ("%s is not loadable (%s) - enable it in the AddOns list"):format(name, tostring(reason))
+	end
+	return nil
+end
+
+local function run()
+	if not LibStub then
+		print("LibCompressTest: LibStub is not available - install LibStub, or enable an add-on that ships it")
+		return
+	end
+
+	if not LibStub:GetLibrary("LibCompress", true) then
+		local loadAddOn = addonAPI("LoadAddOn")
+		if not loadAddOn then
+			print("LibCompressTest: this client exposes no add-on loader - enable PhotoFinger, or add the LibCompress folder to your AddOns")
+			return
+		end
+		loadAddOn("LibCompress")
+	end
+	LibCompress = LibStub:GetLibrary("LibCompress", true)
 	if not LibCompress then
-		print("LibCompressTest: LibCompress is not loaded - enable PhotoFinger, or add the LibCompress folder to your AddOns")
+		local hint = loadFailureHint("LibCompress")
+		print(("LibCompressTest: LibCompress is not loaded%s - enable the add-on, or add the LibCompress folder to your AddOns")
+			:format(hint and (" (" .. hint .. ")") or ""))
 		return
 	end
 

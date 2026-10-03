@@ -16,6 +16,7 @@ globals = {
 	"Enum",
 	"C_EncodingUtil",
 	"C_ChatInfo",
+	"C_AddOns",
 	"bit",
 	"bit_band",
 	"bit_bor",

@@ -8,6 +8,10 @@ The library is marked load on demand, so depend on it in your own addon or force
 
 `LoadAddOn("LibCompress")`
 
+On retail 11.x and later that function lives in the C_AddOns namespace:
+
+`C_AddOns.LoadAddOn("LibCompress")`
+
 Follow it with:
 
 `libc = LibStub:GetLibrary("LibCompress")`

@@ -46,4 +46,5 @@ end
 
 SlashCmdList = {}
 function LoadAddOn() return nil end
+C_AddOns = { LoadAddOn = LoadAddOn, GetAddOnInfo = function() return nil end }
 function CopyToClipboard() end
