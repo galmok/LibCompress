@@ -2,6 +2,9 @@ package-as: LibCompress
 
 enable-nolib-creation: no
 
+# Release notes come from this file instead of the list of commit messages.
+manual-changelog: CHANGELOG.md
+
 # LibStub is pulled in at build time, like everyone else does. It is not committed to
 # this repository (see .gitignore), so after a fresh clone fetch it once for local use:
 #     svn export https://repos.curseforge.com/wow/libstub/trunk Libs/LibStub

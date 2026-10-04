@@ -1,4 +1,4 @@
-## Interface: 120100, 20506, 11509
+## Interface: 11509, 20506, 120100
 
 ## Title: Lib: Compress
 ## Notes: Compression and Decompression library
