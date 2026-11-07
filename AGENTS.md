@@ -29,7 +29,9 @@ Run all of these before committing; the in-game run is the only one that covers
     LIBSTUB=../Libs/LibStub/LibStub.lua NEWLIB=../LibCompress.lua RECORDS=cap1.bin lua cross-new.lua
     OLDLIB=old/LibCompress.lua LIBSTUB=../Libs/LibStub/LibStub.lua RECORDS=cap1.bin lua cross-old.lua
 
-In game: `/reload`, then `/lctest`. Expect `931 passed, 0 failed` and a size report.
+In game: `/reload`, then `/lctest`. Expect `944 passed, 0 failed` and a size report.
+The `zlib edge` section warns when direct `C_EncodingUtil` Deflate method 0 / level 0 is
+still defective and notes when the library's level 0 workaround can be removed.
 `/lctest copy` opens the report in a window (Ctrl+A, Ctrl+C).
 
 Streams produced by capability 1 must stay decodable by r83 and r86 forever. The

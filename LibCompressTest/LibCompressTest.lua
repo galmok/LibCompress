@@ -7,7 +7,7 @@ file; point an AddOns folder at this directory to run it against the library nex
 	/lctest copy	open the last report in a window, Ctrl+A and Ctrl+C to copy
 ]]--
 
-local EXPECTED_MINOR = 90087
+local EXPECTED_MINOR = 90088
 
 local bit_band = bit.band
 
@@ -27,6 +27,10 @@ local function check(name, ok, detail)
 		failed = failed + 1
 		log(("  FAIL  %s%s"):format(name, detail and ("  <" .. tostring(detail) .. ">") or ""))
 	end
+end
+
+local function note(prefix, text)
+	log(prefix .. "  " .. text)
 end
 
 --------------------------------------------------------------------------------
@@ -434,6 +438,54 @@ local function sizeReport(payloads)
 	end
 end
 
+local function photoFingerCardBytes()
+	-- the exact canonical serialized payload from PhotoFinger's one-color editor probe:
+	-- 32x32 pal8, one used palette entry, 1024 pixel bytes, index 133 painted
+	local t = { string.char(2, 32, 32, 1, 56, 227, 84) }
+	for i = 1, 1024 do
+		t[#t + 1] = string.char(i == 133 and 1 or 0)
+	end
+	return table.concat(t)
+end
+
+local function testZlibEdgeCases()
+	local section = "zlib edge"
+	local data = photoFingerCardBytes()
+	local workaround = LibCompress.DEFLATE_LEVEL0_WORKAROUND == true
+	check(section .. " card size", #data == 1031, #data)
+
+	-- Direct Blizzard probe: C_EncodingUtil method 0, level 0. This is not routed through
+	-- LibCompress, so it separates the library's workaround from the API's behaviour.
+	-- Lua 5.1/WoW has no hex escapes, and Enum values are stable 0 for Deflate/default.
+	local compressedOk, compressed = pcall(C_EncodingUtil.CompressString, data, 0, 0)
+	local directOk, directBack = false, nil
+	if compressedOk and type(compressed) == "string" then
+		directOk, directBack = pcall(C_EncodingUtil.DecompressString, compressed, 0)
+	end
+	local defective = not compressedOk or type(compressed) ~= "string" or not directOk or directBack ~= data
+
+	if defective then
+		note("WARNING:", "C_EncodingUtil Deflate method 0 / level 0 is still defective for this edge payload")
+		check(section .. " level0 defect has workaround", workaround, "LibCompress.DEFLATE_LEVEL0_WORKAROUND")
+	else
+		if workaround then
+			note("NOTE:", "Deflate 0/0 now round-trips directly; the LibCompress level 0 workaround can be removed if no other payloads are affected")
+		end
+		check(section .. " direct level0 round trip", true, "direct C_EncodingUtil 0/0 is healthy")
+	end
+
+	roundtrip(section, "default", LibCompress:Compress(data), data)
+	roundtrip(section, "cap1", LibCompress:Compress(data, 1), data)
+	roundtrip(section, "cap2 none", LibCompress:Compress(data, 2, "none"), data)
+	roundtrip(section, "cap2 auto", LibCompress:Compress(data, 2, "auto"), data)
+	roundtrip(section, "max none", LibCompress:Compress(data, "max", "none"), data)
+	roundtrip(section, "max auto", LibCompress:Compress(data, "max", "auto"), data)
+	roundtrip(section .. " deflate", "default none", LibCompress:CompressDeflate(data, nil, "none"), data)
+	roundtrip(section .. " deflate", "level0 none", LibCompress:CompressDeflate(data, 0, "none"), data)
+	roundtrip(section .. " deflate", "level1 none", LibCompress:CompressDeflate(data, 1, "none"), data)
+	roundtrip(section .. " deflate", "level2 none", LibCompress:CompressDeflate(data, 2, "none"), data)
+end
+
 --------------------------------------------------------------------------------
 -- runner
 
@@ -533,6 +585,7 @@ local function run()
 			testStandalone("standalone", payloads)
 			testStandaloneFiltersAndLevels("standalone opts", payloads)
 			testContainersAreNotInterchangeable("containers")
+			testZlibEdgeCases()
 		end
 		testArgumentHandling()
 		testHostileInput(payloads)
