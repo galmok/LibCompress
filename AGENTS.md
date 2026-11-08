@@ -56,7 +56,7 @@ Each of these was hit once and cost an in-game run.
 - `EditBox` has no `GetVerticalScrollRange`.
 - A UTF-8 BOM in front of `## Interface:` breaks the comma separated interface list.
 - Clients that do not understand the comma list stop at the first value, so the
-  Classic Era version must come first: `## Interface: 11509, 20506, 120100`.
+  Classic Era version must come first: `## Interface: 11509, 20506, 120100, 120105, 120107`.
 - `C_EncodingUtil.CompressString`/`DecompressString` raise on corrupt or truncated
   input instead of returning nil. Keep the `pcall` wrappers.
 

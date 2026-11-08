@@ -1,4 +1,4 @@
-## Interface: 120100, 120107
+## Interface: 120100, 120105, 120107
 ## Title: LibCompress Test (throwaway)
 ## Notes: Exercises the LibCompress additions against the real C_EncodingUtil. Not for release.
 ## Author: PhotoFinger development
